@@ -21,34 +21,6 @@ async function getUsers(req, res) {
     }
 }
 
-async function createUsers(req, res) {
-    try {
-        const { firstName, lastName, email, password } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const created = new Date().toISOString();
-        const updated = created;
-        const user = { 
-            firstName: firstName,
-            lastName: lastName, 
-            email: email,
-            password: hashedPassword,
-            createdAt: created,
-            updatedAt: updated
-        };
-
-        await db.collection("users").doc().set(user);
-        res.status(201).json({ 
-            status: "success",
-            message: "User created successfully" 
-        });
-    } catch (error) {
-        res.status(500).json({ 
-            status: "error",
-            error: error.message 
-        });
-    }
-}
-
 async function getUserById(req, res) {
     try {
         const { docId } = req.params;
@@ -113,8 +85,7 @@ async function deleteUserById(req, res) {
 }
 
 export default { 
-    getUsers, 
-    createUsers, 
+    getUsers,
     getUserById, 
     editUserById, 
     deleteUserById 
