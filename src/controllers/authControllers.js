@@ -159,33 +159,45 @@ async function resetPassword(req, res) {
             });
         }
 
-        for (const doc of userSnapshot.docs) {
-            const data = doc.data();
+        let data;
+        let docId;
 
-            if (data.isDone) {
-                return res.status(400).json({ 
-                    status: "error",
-                    error: "Token already used" 
-                });
-            } else {
-                const hashedPassword = await bcrypt.hash(password, 10);
-                const userDocs = await db.collection("users").where("email", "==", data.email).get();
+        userSnapshot.forEach((doc) => {
+            data = doc.data();
+            docId = doc.id;
+        });
 
-                for (const userDoc of userDocs.docs) {
-                    await db.collection("users").doc(userDoc.id).set({ 
-                        password: hashedPassword, 
-                        updatedAt: new Date().toISOString() 
-                    }, { merge: true });
-                }
-
-                await db.collection("passwordReset").doc(doc.id).set({ isDone: true }, { merge: true });
-
-                return res.status(200).json({ 
-                    status: "success",
-                    message: "Password reset successfully" 
-                });
-            }
+        if (!data) {
+            return res.status(404).json({ 
+                status: "error",
+                error: "Token not found" 
+            });
         }
+
+        if (data.isDone) {
+            return res.status(400).json({ 
+                status: "error",
+                error: "Token already used" 
+            });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const userDocs = await db.collection("users").where("email", "==", data.email).get();
+
+        userDocs.forEach(async (userDoc) => {
+            await db.collection("users").doc(userDoc.id).set({ 
+                password: hashedPassword, 
+                updatedAt: new Date().toISOString() 
+            }, { merge: true });
+
+            await db.collection("passwordReset").doc(docId).set({ isDone: true }, { merge: true });
+        });
+
+        return res.status(200).json({
+            status: "success",
+            message: "Password reset successfully"
+        });
+
     } catch (error) {
         return res.status(500).json({ 
             status: "error",
